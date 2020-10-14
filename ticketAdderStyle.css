@@ -37,7 +37,7 @@
     display: block;
     position: relative;
     width: 75%;
-    background-color: grey;
+    background-color: rgba(161,161,161,0.3);
     margin-left: 25%;
 }
 
