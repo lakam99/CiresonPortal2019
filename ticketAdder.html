@@ -30,36 +30,103 @@
         <script>
                 const expand = "<span class='glyphicon glyphicon-collapse-down'></span>";
                 const collapse = "<span class='glyphicon glyphicon-collapse-up'></span>";
-            function bind() {
-                $(".glyphicon-plus").off("click");
-                $(".glyphicon-minus").off("click");
-                $(".glyphicon-minus").on("click", function(e){
-                    var elem = $(e.target).parent().parent()[0];
-                    var parent = elem.parentContainer;
-                    var children = undefined;
-                    $(elem).remove();
-                    if (parent !== undefined && parent.hasChildNodes()) {
-                        children = [].concat.apply([], parent.childNodes);
-                        children.forEach(function(child){
-                            $(parent).before(child);
-                        });
+                function bind_listeners() {
+                    $(".glyphicon-plus").off("click");
+                    $(".glyphicon-minus").off("click");
+                    $(".glyphicon-minus").on("click", function(e){
+                        var elem = $(e.target).parent().parent()[0];
+                        var parent = elem.parentContainer;
+                        var children = undefined;
+                        $(elem).remove();
+                        if (parent !== undefined && parent.hasChildNodes()) {
+                            children = [].concat.apply([], parent.childNodes);
+                            children.forEach(function(child){
+                                $(parent).before(child);
+                            });
+                        }
+                        check_parenthood();
+                    });
+
+                    $(".glyphicon-plus").on("click", function(e){
+                        $(".activity_inner").append(`
+                        <div class="activity_item">
+                            ${Math.round(Math.random() * 20)}
+                            <span class="activity_item_icons">
+                                <span class="glyphicon glyphicon-plus"></span>
+                                <span class="glyphicon glyphicon-minus"></span>
+                            </span>
+                        </div>`);
+                        
+                        bind();
+                    });
+                }
+
+                function build_draggable() {
+                    $(".activity_item").kendoDraggable({
+                    hint: function(e){return e.clone()},
+                    drag: function(e) {
+                        $("hr.indicator").remove();
+                        var hover = e.elementUnderCursor;
+                        var i = "<hr class='indicator'/>";
+                        var r = -1;
+                        if ($(".activity_inner")[0].contains(hover) && $(".activity_inner")[0] !== hover) {
+                            r = before_or_after(e, hover);
+                            if (r == 0) {
+                                $(hover).after(i);
+                            } else if (r == 1) {
+                                $(hover).before(i);
+                            }
+                        }
+                    },
+                    dragend: function(){$("hr.indicator").remove()}
+                });
+                }
+
+                function build_droptarget() {
+                    $(".activity_item").kendoDropTarget({
+                        drop: function(e){
+                            $("hr.indicator").remove();
+                            var t = e.dropTarget[0];
+                            var elem = e.draggable.element[0];
+                            if (elem.parentContainer !== undefined && elem.parentContainer.contains(t)) {
+                                return;
+                            }
+                            var r = before_or_after(e, t);
+                            if (r == 1) {
+                                $(t).before(elem);
+                            } else if (r == 0) {
+                                $(t).after(elem);
+                            } else {
+                                push_to_parent(t, elem);
+                            }
+                            if (elem.parentContainer && $(elem).next() !== elem.parentContainer) {
+                                    $(elem).after(elem.parentContainer);
+                            }
+                            if (t.parentContainer && $(t).next() !== t.parentContainer) {
+                                $(t).after(t.parentContainer);
+                            }
+                            check_parenthood();
+                        }
+                    });
+                }
+            
+                function bind() {
+                    bind_listeners();
+                    build_draggable();
+                    build_droptarget();
+                }
+
+            function check_parenthood() {
+                $(".parent_container").toArray().forEach(function(e){
+                    if (!e.hasChildNodes()) {
+                        $(e.parent).find("span.glyphicon-collapse-down,span.glyphicon-collapse-up").remove();
+                        delete e.parent.parentContainer;
+                        $(e).remove();
                     }
                 });
-                $(".glyphicon-plus").on("click", function(e){
-                    $(".activity_inner").append(`
-                    <div class="activity_item">
-                        ${Math.round(Math.random() * 20)}
-                        <span class="activity_item_icons">
-                            <span class="glyphicon glyphicon-plus"></span>
-                            <span class="glyphicon glyphicon-minus"></span>
-                        </span>
-                    </div>`
-                    );
-                    
-                    bind();
-                });
+            }
 
-                function before_or_after(event, target) {
+            function before_or_after(event, target) {
                     var rect = target.getBoundingClientRect();
                     var y = event.clientY;
                     var distTop = Math.abs(y - rect.top);
@@ -75,35 +142,19 @@
                 }
 
                 function push_to_parent(parent, child) {
+                    if (parent === child) {return}
                     if (parent.parentContainer === undefined) {
                         $(parent).after("<div class='parent_container'></div>");
                         parent.parentContainer = $(parent).next(".parent_container")[0];
+                        parent.parentContainer.parent = parent;
+                        $(parent).find("span.glyphicon-plus").before(collapse);
+                        bind_collapse();
                         return push_to_parent(parent, child);
                     } else {
-                        if (parent !== child) {
-                            $(parent.parentContainer).append(child);
-                        }
+                        $(parent.parentContainer).append(child);
                     }
                 }
                 
-                $(".activity_item").kendoDraggable({
-                    hint: function(e){return e.clone()},
-                    drag: function(e) {
-                        $("hr.indicator").remove();
-                        var hover = e.elementUnderCursor;
-                        var i = "<hr class='indicator'/>";
-                        var r = -1;
-                        if ($(".activity_inner")[0].contains(hover) && $(".activity_inner")[0] !== hover) {
-                            r = before_or_after(e, hover);
-                            if (r == 0) {
-                                $(hover).after(i);
-                            } else if (r == 1) {
-                                $(hover).before(i);
-                            }
-                        }
-                    }
-                },);
-
                 function bind_collapse() {
                     $("span.glyphicon-collapse-up").on("click", function(e){
                         var elem = $(e.target).parent().parent()[0];
@@ -123,49 +174,6 @@
                         bind_collapse();
                     });
                 }
-
-                $(".activity_item").kendoDropTarget({
-                    drop: function(e){
-                        $("hr.indicator").remove();
-                        var t = e.dropTarget[0];
-                        var elem = e.draggable.element[0];
-                        var r = before_or_after(e, t);
-                        if (elem.parentContainer !== undefined && elem.parentContainer.contains(t)) {
-                            return;
-                        }
-                        if (r == 1) {
-                            $(t).before(elem);
-                        } else if (r == 0) {
-                            $(t).after(elem);
-                        } else {
-                            push_to_parent(t, elem);
-                        }
-                        if (elem.parentContainer && $(elem).next() !== elem.parentContainer) {
-                                $(elem).after(elem.parentContainer);
-                        }
-                        if (t.parentContainer && $(t).next() !== t.parentContainer) {
-                            $(t).after(t.parentContainer);
-                        }
-                        $(".parent_container").toArray().forEach(function(e){
-                            if (!e.hasChildNodes()) {
-                                $(e).remove();
-                            }
-                        });
-                        $(".activity_item").toArray().forEach(function(i){
-                            if (i.parentContainer !== undefined && 
-                                !$(i).has("span.glyphicon-collapse-down,span.glyphicon-collapse-up").length) {
-                                    $(i).find("span.glyphicon-plus").before(collapse);
-                                    bind_collapse();
-                            } else if (i.parentContainer === undefined && 
-                            $(i).has("span.glyphicon-collapse-down,span.glyphicon-collapse-up").length) {
-                                $(i).find("span.glyphicon-collapse-down,span.glyphicon-collapse-up").remove();
-                            }
-
-                        });
-                        
-                    }
-                });
-            }
 
             bind();
         </script>
