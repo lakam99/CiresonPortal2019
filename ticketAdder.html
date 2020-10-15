@@ -28,8 +28,23 @@
         </div>
 
         <script>
+                const expand = "<span class='glyphicon glyphicon-collapse-down'></span>";
+                const collapse = "<span class='glyphicon glyphicon-collapse-up'></span>";
             function bind() {
                 $(".glyphicon-plus").off("click");
+                $(".glyphicon-minus").off("click");
+                $(".glyphicon-minus").on("click", function(e){
+                    var elem = $(e.target).parent().parent()[0];
+                    var parent = elem.parentContainer;
+                    var children = undefined;
+                    $(elem).remove();
+                    if (parent !== undefined && parent.hasChildNodes()) {
+                        children = [].concat.apply([], parent.childNodes);
+                        children.forEach(function(child){
+                            $(parent).before(child);
+                        });
+                    }
+                });
                 $(".glyphicon-plus").on("click", function(e){
                     $(".activity_inner").append(`
                     <div class="activity_item">
@@ -89,12 +104,35 @@
                     }
                 },);
 
+                function bind_collapse() {
+                    $("span.glyphicon-collapse-up").on("click", function(e){
+                        var elem = $(e.target).parent().parent()[0];
+                        $(elem.parentContainer).attr("style", "display:none !important;");
+                        $(e.target).off("click");
+                        $(e.target).replaceWith(expand);
+                        bind_expand();
+                    });
+                }
+
+                function bind_expand() {
+                    $("span.glyphicon-collapse-down").on("click", function(e){
+                        var elem = $(e.target).parent().parent()[0];
+                        $(elem.parentContainer).attr("style", "");
+                        $(e.target).off("click");
+                        $(e.target).replaceWith(collapse);
+                        bind_collapse();
+                    });
+                }
+
                 $(".activity_item").kendoDropTarget({
                     drop: function(e){
                         $("hr.indicator").remove();
                         var t = e.dropTarget[0];
-                        var r = before_or_after(e, t);
                         var elem = e.draggable.element[0];
+                        var r = before_or_after(e, t);
+                        if (elem.parentContainer !== undefined && elem.parentContainer.contains(t)) {
+                            return;
+                        }
                         if (r == 1) {
                             $(t).before(elem);
                         } else if (r == 0) {
@@ -105,6 +143,26 @@
                         if (elem.parentContainer && $(elem).next() !== elem.parentContainer) {
                                 $(elem).after(elem.parentContainer);
                         }
+                        if (t.parentContainer && $(t).next() !== t.parentContainer) {
+                            $(t).after(t.parentContainer);
+                        }
+                        $(".parent_container").toArray().forEach(function(e){
+                            if (!e.hasChildNodes()) {
+                                $(e).remove();
+                            }
+                        });
+                        $(".activity_item").toArray().forEach(function(i){
+                            if (i.parentContainer !== undefined && 
+                                !$(i).has("span.glyphicon-collapse-down,span.glyphicon-collapse-up").length) {
+                                    $(i).find("span.glyphicon-plus").before(collapse);
+                                    bind_collapse();
+                            } else if (i.parentContainer === undefined && 
+                            $(i).has("span.glyphicon-collapse-down,span.glyphicon-collapse-up").length) {
+                                $(i).find("span.glyphicon-collapse-down,span.glyphicon-collapse-up").remove();
+                            }
+
+                        });
+                        
                     }
                 });
             }

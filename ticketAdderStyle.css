@@ -67,6 +67,16 @@
     color: rgb(202, 74, 74);
 }
 
+.glyphicon-collapse-up {
+    color: rgba(37, 41, 26, 0.541);
+    margin-right: 2px;
+}
+
+.glyphicon-collapse-down {
+    color: rgba(42, 51, 38, 0.541);
+    margin-right: 2px;
+}
+
 .my_nav {
     background-color: transparent !important;
 }
